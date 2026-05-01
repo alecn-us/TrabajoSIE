@@ -1,0 +1,213 @@
+{
+  "name": "Proceso de Revisión",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6a61c6c8-efb1-4366-9755-af33d8f04c54",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -176,
+        -80
+      ],
+      "id": "34b0d80c-808b-480d-a832-a1a6cae9df1b",
+      "name": "Webhook",
+      "webhookId": "6a61c6c8-efb1-4366-9755-af33d8f04c54"
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "customResource": "=project.task",
+        "operation": "get",
+        "customResourceId": "={{ $json.body._id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.odoo",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -80
+      ],
+      "id": "aa4e9f6d-6ba6-4ba2-afa6-ea64d78cb22b",
+      "name": "Get an item",
+      "credentials": {
+        "odooApi": {
+          "id": "2y4M3iZ70w5lIzjA",
+          "name": "Odoo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:34765/bonita/loginservice",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "Encargado1"
+            },
+            {
+              "name": "password",
+              "value": "bpm"
+            },
+            {
+              "name": "redirect",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        -80
+      ],
+      "id": "fcdf59a1-58da-454d-9cf2-45eb01745a1b",
+      "name": "Login"
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:34765/bonita/API/bpm/process?p=0&c=1&f=name=Asinación revisión&f=activationState=ENABLED",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Bonita-API-Token",
+              "value": "={{ $node[\"Login\"].json.headers[\"set-cookie\"][1].split('=')[1].split(';')[0] }}"
+            },
+            {
+              "name": "Cookie",
+              "value": "=JSESSIONID={{ $node[\"Login\"].json.headers[\"set-cookie\"][0].split('=')[1].split(';')[0] }}; X-Bonita-API-Token={{ $node[\"Login\"].json.headers[\"set-cookie\"][1].split('=')[1].split(';')[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        432,
+        -80
+      ],
+      "id": "04bae09f-e359-4817-8c9b-4022adbfdd1e",
+      "name": "Buscar Proceso"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:34765/bonita/API/bpm/process/{{ $json.id }}/instantiation",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Bonita-API-Token",
+              "value": "={{ $node[\"Login\"].json.headers[\"set-cookie\"][1].split('=')[1].split(';')[0] }}"
+            },
+            {
+              "name": "Cookie",
+              "value": "=JSESSIONID={{ $node[\"Login\"].json.headers[\"set-cookie\"][0].split('=')[1].split(';')[0] }}; X-Bonita-API-Token={{ $node[\"Login\"].json.headers[\"set-cookie\"][1].split('=')[1].split(';')[0] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"instantiationInputs\": {\n    \"id_pedido_odoo\": {{ $node[\"Get an item\"].json.id }}\n  }\n}",
+        "options": {
+          "batching": {
+            "batch": {}
+          },
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        -80
+      ],
+      "id": "34b84600-0dc0-431f-9b73-3aed8cd3ebe1",
+      "name": "Crear Proceso Tarea"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get an item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get an item": {
+      "main": [
+        [
+          {
+            "node": "Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login": {
+      "main": [
+        [
+          {
+            "node": "Buscar Proceso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Proceso": {
+      "main": [
+        [
+          {
+            "node": "Crear Proceso Tarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0eb908cd-29d2-4066-95f5-95e1d089c185",
+  "meta": {
+    "instanceId": "90cae0b4d28f1e59238ab5e2575ee9bf7b110f5d71c51442e4924bd245c509ee"
+  },
+  "id": "39YAX9Q67AUmdMrP",
+  "tags": []
+}
